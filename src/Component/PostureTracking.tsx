@@ -128,10 +128,12 @@ export function PostureTracking({
             selfieMode: true,
         });
 
-        result.onResults(onHolisticResults);
-
         return result;
-    }, [onHolisticResults]);
+    }, []);
+
+    useEffect(() => {
+        holistic.onResults(onHolisticResults);
+    }, [holistic, onHolisticResults]);
 
     useEffect(() => {
         return () => {

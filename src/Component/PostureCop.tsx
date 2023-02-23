@@ -6,10 +6,11 @@ import {
     Box,
     Button,
     CircularProgress,
-    Divider,
+    FormControlLabel,
+    Paper,
     Stack,
+    Switch,
     TextField,
-    ToggleButton,
     Tooltip,
     Typography
 } from "@mui/material";
@@ -34,15 +35,44 @@ enum PostureState {
 
 const FRAME_RATE = 5;
 
+function useAudioNotification(enabled: boolean, condition: boolean, timeout: number, audioRef: React.MutableRefObject<HTMLAudioElement | undefined>) {
+    useEffect(() => {
+        if (!enabled) {
+            return;
+        }
+
+        let timeoutId: any;
+        if (condition) {
+            timeoutId = setTimeout(() => {
+                console.log(`It's been bad for ${timeout} seconds`);
+                audioRef.current?.play();
+            }, timeout * 1000);
+        }
+
+        return () => {
+            if (timeoutId >= 0) {
+                // console.log("Clearing bad timeout.");
+                clearTimeout(timeoutId);
+                if (audioRef.current) {
+                    audioRef.current.pause();
+                }
+            }
+        };
+    }, [enabled, condition, timeout]);
+}
+
 export function PostureCop() {
     const [referencePostures, setReferencePostures] = useLocalStorage<Posture[]>("postures", []);
     const [closestPostureIndex, setClosestPostureIndex] = useState<number>(0);
     const [audioUrl, setAudioUrl] = useLocalStorage("audioUrl",
-        "https://upload.wikimedia.org/wikipedia/commons/b/b6/IMSLP348253-PMLP01555-Mozart_29-1.ogg");
+        "https://ia800206.us.archive.org/7/items/MoonlightSonata_755/Beethoven-MoonlightSonata.mp3");
     const [postureState, setPostureState] = useState<PostureState>(PostureState.NoReferencePostures);
     const [handInTheFace, setHandInTheFace] = useState<boolean>(false);
     const [loading, setLoading] = useState(true);
-    const [enabled, setEnabled] = useState(true);
+    const [postureTrackingEnabled, setPostureTrackingEnabled] = useLocalStorage("postureTrackingEnabled", true);
+    const [handInTheFaceTimeout, setHandInTheFaceTimeout] = useLocalStorage("handInTheFaceTimeout", 1);
+    const [postureTrackingTimeout, setPostureTrackingTimeout] = useLocalStorage("postureTrackingTimeout", 10);
+    const [handInTheFaceEnabled, setHandInTheFaceEnabled] = useLocalStorage("handInTheFaceEnabled", true);
 
     const postureAudioRef = useRef<HTMLAudioElement>();
 
@@ -75,42 +105,8 @@ export function PostureCop() {
         }
     }, [closestPostureIndex, referencePostures]);
 
-    useEffect(() => {
-        if (!enabled) {
-            return;
-        }
-
-        let timeoutId: any;
-        if (postureState === PostureState.Bad) {
-            // console.log("Starting bad timeout.");
-            timeoutId = setTimeout(() => {
-                console.log("It's been bad for 10 seconds");
-                postureAudioRef.current?.play();
-            }, BAD_POSTURE_TIMEOUT);
-        }
-
-        return () => {
-            if (timeoutId >= 0) {
-                // console.log("Clearing bad timeout.");
-                clearTimeout(timeoutId);
-                if (postureAudioRef.current) {
-                    postureAudioRef.current.pause();
-                }
-            }
-        };
-    }, [postureState, enabled]);
-
-    useEffect(() => {
-        if (handInTheFace && postureAudioRef.current) {
-            postureAudioRef.current.volume = 0.25;
-            postureAudioRef.current.play();
-        }
-
-        return () => {
-            postureAudioRef.current?.pause();
-        };
-    }, [handInTheFace]);
-
+    useAudioNotification(postureTrackingEnabled, postureState === PostureState.Bad, postureTrackingTimeout, postureAudioRef);
+    useAudioNotification(handInTheFaceEnabled, handInTheFace, handInTheFaceTimeout, postureAudioRef);
 
     function capturePosture(correct: boolean) {
         if (faceLandmarks.current) {
@@ -122,73 +118,91 @@ export function PostureCop() {
         setReferencePostures([]);
     }
 
-    return <Stack gap={2} alignItems="stretch">
-        <audio src={audioUrl}
-               loop={true}
-               ref={(input) => {
-                   postureAudioRef.current = input as HTMLAudioElement
-               }}/>
+    return <>
+        <Paper sx={{p: 2}}>
+            <Stack gap={2} alignItems="stretch">
+                <audio src={audioUrl}
+                       loop={true}
+                       ref={(input) => {
+                           postureAudioRef.current = input as HTMLAudioElement
+                       }}/>
 
-        <Stack gap={1} sx={{width: "100%"}}>
-            <Stack direction="row" gap={1}>
-                <Box flex={1}>
-                    {postureState === PostureState.Good &&
-                        <Alert severity="success">You look great!</Alert>}
-                    {postureState === PostureState.Bad &&
-                        <Alert severity="error">Uh oh! You've got {BAD_POSTURE_TIMEOUT / 1000} seconds to fix
-                            yourself!</Alert>}
-                    {postureState === PostureState.Gone &&
-                        <Alert severity="info">Aaaaand you're gone.</Alert>}
-                    {postureState === PostureState.NoReferencePostures &&
-                        <Alert severity="info">Define some reference postures first by moving your head into correct and
-                            bad
-                            positions and record these positions using the buttons below.</Alert>}
-                </Box>
-                <ToggleButton value={enabled}
-                              selected={enabled}
-                              onChange={() => setEnabled(!enabled)}>{enabled ? "On" : "Off"}</ToggleButton>
+                <Stack gap={1} sx={{width: "100%"}}>
+                    <Stack direction="row" gap={1}>
+                        <Box flex={1}>
+                            {postureState === PostureState.Good &&
+                                <Alert severity="success">You look great!</Alert>}
+                            {postureState === PostureState.Bad &&
+                                <Alert severity="error">Uh oh! You've got {postureTrackingTimeout} seconds to fix
+                                    yourself!</Alert>}
+                            {postureState === PostureState.Gone &&
+                                <Alert severity="info">Aaaaand you're gone.</Alert>}
+                            {postureState === PostureState.NoReferencePostures &&
+                                <Alert severity="info">Define some reference postures first by moving your head into
+                                    correct and
+                                    bad
+                                    positions and record these positions using the buttons below.</Alert>}
+                        </Box>
+                    </Stack>
+
+                    {handInTheFace
+                        ? <Alert severity="error">Arrr, ye be tryin' to pick yer nose, be ye not?</Alert>
+                        : <Alert severity="success">Good, keep their handsies out of their nosies, yes, yes!</Alert>}
+                </Stack>
+
+                <Stack width="100%" alignItems="center" position="relative">
+                    <PostureTracking onFaceUpdate={handleFaceUpdate}
+                                     onHandInTheFace={setHandInTheFace}
+                                     postures={referencePostures}
+                                     closestPostureIndex={closestPostureIndex}
+                                     frameRate={FRAME_RATE}/>
+                    {loading && <Box display="inline-block" sx={styles.loading}>
+                        <CircularProgress/>
+                    </Box>}
+                </Stack>
+                <Stack alignItems="stretch">
+                    <Stack direction="row" gap={2} sx={{mb: 2, width: "100%"}}>
+                        <Tooltip
+                            title="Position yourself in a good reference posture and click this button to record it">
+                            <Button startIcon={<AddIcon/>} sx={styles.button} variant="outlined"
+                                    color="success"
+                                    onClick={() => capturePosture(true)}>Good
+                                posture</Button>
+                        </Tooltip>
+                        <Button startIcon={<AddIcon/>} sx={styles.button} variant="outlined"
+                                color="error"
+                                onClick={() => capturePosture(false)}>Bad
+                            posture</Button>
+                    </Stack>
+                    <Button startIcon={<ClearIcon/>} sx={styles.button} variant="outlined"
+                            onClick={clearPostures}>Clear</Button>
+                </Stack>
             </Stack>
-
-            {handInTheFace
-                ? <Alert severity="error">Arrr, ye be tryin' to pick yer nose, be ye not?</Alert>
-                : <Alert severity="success">Good, keep their handsies out of their nosies, yes, yes!</Alert>}
-        </Stack>
-
-        <Stack width="100%" alignItems="center" position="relative">
-            <PostureTracking onFaceUpdate={handleFaceUpdate}
-                             onHandInTheFace={setHandInTheFace}
-                             postures={referencePostures}
-                             closestPostureIndex={closestPostureIndex}
-                             frameRate={FRAME_RATE}/>
-            {loading && <Box display="inline-block" sx={styles.loading}>
-                <CircularProgress/>
-            </Box>}
-        </Stack>
-        <Stack alignItems="stretch">
-            <Stack direction="row" gap={2} sx={{mb: 2, width: "100%"}}>
-                <Tooltip title="Position yourself in a good reference posture and click this button to record it">
-                    <Button startIcon={<AddIcon/>} sx={styles.button} variant="outlined"
-                            color="success"
-                            onClick={() => capturePosture(true)}>Good
-                        posture</Button>
-                </Tooltip>
-                <Button startIcon={<AddIcon/>} sx={styles.button} variant="outlined"
-                        color="error"
-                        onClick={() => capturePosture(false)}>Bad
-                    posture</Button>
+        </Paper>
+        <Paper sx={{p: 2}}>
+            <Typography variant="subtitle1">Settings</Typography>
+            <Stack gap={3}>
+                <Stack direction="row" justifyContent="space-between">
+                    <FormControlLabel label="Play sound for posture tracking" control={
+                        <Switch checked={postureTrackingEnabled}
+                                onChange={(event, checked) => setPostureTrackingEnabled(checked)}/>}></FormControlLabel>
+                    <TextField label="Sound timeout (seconds)" type="number" value={postureTrackingTimeout}
+                               onChange={event => setPostureTrackingTimeout(Number.parseFloat(event.target.value))}/>
+                </Stack>
+                <Stack direction="row" justifyContent="space-between">
+                    <FormControlLabel label="Play sound for hand in the face" control={
+                        <Switch checked={handInTheFaceEnabled}
+                                onChange={(event, checked) => setHandInTheFaceEnabled(checked)}/>}></FormControlLabel>
+                    <TextField label="Sound timeout (seconds)" type="number" value={handInTheFaceTimeout}
+                               onChange={event => setHandInTheFaceTimeout(Number.parseFloat(event.target.value))}/>
+                </Stack>
+                <TextField label="Play this for notification"
+                           value={audioUrl}
+                           onChange={event => setAudioUrl(event.target.value)}
+                           fullWidth/>
             </Stack>
-            <Button startIcon={<ClearIcon/>} sx={styles.button} variant="outlined"
-                    onClick={clearPostures}>Clear</Button>
-        </Stack>
-        <Divider/>
-        <Typography variant="subtitle1">Settings</Typography>
-        <Box sx={{width: "100%"}}>
-            <TextField label="Play this file for bad posture"
-                       value={audioUrl}
-                       onChange={event => setAudioUrl(event.target.value)}
-                       fullWidth/>
-        </Box>
-    </Stack>
+        </Paper>
+    </>;
 }
 
 const styles = {

@@ -36,10 +36,10 @@ function handInTheFace(handLandmarks: NormalizedLandmarkList, faceLandmarks: Nor
 
     for (let i of Object.values(HAND_LANDMARKS)) {
         if (inside(handLandmarks[i], faceLandmarks)) {
-            console.log("Finger " + i + " is in the face!");
             return true;
         }
     }
+
     return false;
 }
 
@@ -101,29 +101,14 @@ export function PostureTracking({
         onFaceUpdate?.(faceLandmarksSimple);
 
         drawConnectors(canvasCtx, faceLandmarksSimple, FACEMESH_FACE_OVAL_SIMPLE_CONNECTIONS, {color: '#E0E0E0'});
-        // drawConnectors(canvasCtx, landmarks, FACEMESH_TESSELATION,
-        //     {color: '#C0C0C070', lineWidth: 1});
-
-        drawConnectors(canvasCtx, results.leftHandLandmarks, HAND_CONNECTIONS, {color: "aquamarine"});
-        drawConnectors(canvasCtx, results.leftHandLandmarks, [
-            [HAND_LANDMARKS.THUMB_TIP, HAND_LANDMARKS.INDEX_TIP],
-            [HAND_LANDMARKS.INDEX_TIP, HAND_LANDMARKS.MIDDLE_TIP],
-            [HAND_LANDMARKS.MIDDLE_TIP, HAND_LANDMARKS.RING_TIP],
-            [HAND_LANDMARKS.RING_TIP, HAND_LANDMARKS.PINKY_TIP],
-        ], {color: "pink", lineWidth: 1});
-        drawConnectors(canvasCtx, results.rightHandLandmarks, HAND_CONNECTIONS, {color: "aquamarine"});
-        drawConnectors(canvasCtx, results.rightHandLandmarks, [
-            [HAND_LANDMARKS.THUMB_TIP, HAND_LANDMARKS.INDEX_TIP],
-            [HAND_LANDMARKS.INDEX_TIP, HAND_LANDMARKS.MIDDLE_TIP],
-            [HAND_LANDMARKS.MIDDLE_TIP, HAND_LANDMARKS.RING_TIP],
-            [HAND_LANDMARKS.RING_TIP, HAND_LANDMARKS.PINKY_TIP],
-        ], {color: "pink", lineWidth: 1});
+        drawConnectors(canvasCtx, results.leftHandLandmarks, HAND_CONNECTIONS, {color: "white"});
+        drawConnectors(canvasCtx, results.rightHandLandmarks, HAND_CONNECTIONS, {color: "white"});
 
         drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS);
 
-        const leftHandInTheFace = handInTheFace(results.leftHandLandmarks, results.faceLandmarks);
-        const rightHandInTheFace = handInTheFace(results.rightHandLandmarks, results.faceLandmarks);
-        
+        const leftHandInTheFace = handInTheFace(results.leftHandLandmarks, faceLandmarksSimple);
+        const rightHandInTheFace = handInTheFace(results.rightHandLandmarks, faceLandmarksSimple);
+
         onHandInTheFace(leftHandInTheFace || rightHandInTheFace);
 
         canvasCtx.restore();

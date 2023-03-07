@@ -1,6 +1,6 @@
 import React from 'react';
 import {PostureCop} from "./Component/PostureCop";
-import {Alert, Box, CssBaseline, Link, Stack, ThemeProvider, Typography} from "@mui/material";
+import {Box, CssBaseline, Link, Stack, ThemeProvider, Typography} from "@mui/material";
 import {THEME} from "./theme/theme";
 
 function App() {
@@ -15,8 +15,6 @@ function App() {
                         check?</Link>
                 </Box>
                 <PostureCop/>
-                <Alert severity="warning">Detach this tab to a separate window and don't minimize it, otherwise
-                    the camera stream will pause and the application will stop working.</Alert>
             </Stack>
         </ThemeProvider>
     );

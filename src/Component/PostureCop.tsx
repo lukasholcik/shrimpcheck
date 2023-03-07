@@ -66,13 +66,16 @@ export function PostureCop() {
     const [closestPostureIndex, setClosestPostureIndex] = useState<number>(0);
     const [audioUrl, setAudioUrl] = useLocalStorage("audioUrl",
         "https://ia800206.us.archive.org/7/items/MoonlightSonata_755/Beethoven-MoonlightSonata.mp3");
+
     const [postureState, setPostureState] = useState<PostureState>(PostureState.NoReferencePostures);
     const [handInTheFace, setHandInTheFace] = useState<boolean>(false);
+
     const [loading, setLoading] = useState(true);
+
     const [postureTrackingEnabled, setPostureTrackingEnabled] = useLocalStorage("postureTrackingEnabled", true);
-    const [handInTheFaceTimeout, setHandInTheFaceTimeout] = useLocalStorage("handInTheFaceTimeout", 1);
     const [postureTrackingTimeout, setPostureTrackingTimeout] = useLocalStorage("postureTrackingTimeout", 10);
     const [handInTheFaceEnabled, setHandInTheFaceEnabled] = useLocalStorage("handInTheFaceEnabled", true);
+    const [handInTheFaceTimeout, setHandInTheFaceTimeout] = useLocalStorage("handInTheFaceTimeout", 1);
 
     const postureAudioRef = useRef<HTMLAudioElement>();
 
@@ -118,7 +121,7 @@ export function PostureCop() {
         setReferencePostures([]);
     }
 
-    return <>
+    return <Stack gap={2}>
         <Paper sx={{p: 2}}>
             <Stack gap={2} alignItems="stretch">
                 <audio src={audioUrl}
@@ -179,6 +182,8 @@ export function PostureCop() {
                 </Stack>
             </Stack>
         </Paper>
+        <Alert severity="warning">Detach this tab to a separate window and don't minimize it, otherwise
+            the camera stream will pause and the application will stop working.</Alert>
         <Paper sx={{p: 2}}>
             <Typography variant="subtitle1">Settings</Typography>
             <Stack gap={3}>
@@ -186,14 +191,14 @@ export function PostureCop() {
                     <FormControlLabel label="Play sound for posture tracking" control={
                         <Switch checked={postureTrackingEnabled}
                                 onChange={(event, checked) => setPostureTrackingEnabled(checked)}/>}></FormControlLabel>
-                    <TextField label="Sound timeout (seconds)" type="number" value={postureTrackingTimeout}
+                    <TextField label="Sound delay (seconds)" type="number" value={postureTrackingTimeout}
                                onChange={event => setPostureTrackingTimeout(Number.parseFloat(event.target.value))}/>
                 </Stack>
                 <Stack direction="row" justifyContent="space-between">
                     <FormControlLabel label="Play sound for hand in the face" control={
                         <Switch checked={handInTheFaceEnabled}
                                 onChange={(event, checked) => setHandInTheFaceEnabled(checked)}/>}></FormControlLabel>
-                    <TextField label="Sound timeout (seconds)" type="number" value={handInTheFaceTimeout}
+                    <TextField label="Sound delay (seconds)" type="number" value={handInTheFaceTimeout}
                                onChange={event => setHandInTheFaceTimeout(Number.parseFloat(event.target.value))}/>
                 </Stack>
                 <TextField label="Play this for notification"
@@ -202,7 +207,7 @@ export function PostureCop() {
                            fullWidth/>
             </Stack>
         </Paper>
-    </>;
+    </Stack>;
 }
 
 const styles = {
